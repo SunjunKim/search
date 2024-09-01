@@ -40,9 +40,32 @@
             padding: 20px;
             width: 100%;
             box-sizing: border-box;
+            overflow-y: auto; /* Added to allow scrolling */
+            flex: 1; /* Added to make it take available space */
         }
         .highlight {
             background-color: yellow;
+        }
+        #show_more {
+            display: none;
+            margin: 20px auto 40px; /* Increased bottom margin to 40px */
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #counter {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px 20px;
+            font-size: 16px;
+            text-align: center;
+            background-color: #f1f1f1;
+            border-top: 1px solid #ccc;
+            z-index: 1000; /* Added to ensure it stays on top */
         }
     </style>
 </head>
@@ -50,12 +73,18 @@
     <input type="text" id="search_box" placeholder="Search...">
     <div id="drop_zone">Drag and drop a .txt file here</div>
     <div id="file_content"></div>
+    <button id="show_more">Show More</button>
+    <div id="counter"></div>
 
     <script>
         const dropZone = document.getElementById('drop_zone');
         const searchBox = document.getElementById('search_box');
         const fileContent = document.getElementById('file_content');
+        const showMoreButton = document.getElementById('show_more');
+        const counter = document.getElementById('counter');
         let fileLines = [];
+        let currentIndex = 0;
+        const itemsPerPage = 500;
 
         dropZone.addEventListener('dragover', (event) => {
             event.preventDefault();
@@ -77,6 +106,7 @@
                     dropZone.style.display = 'none';
                     fileLines = e.target.result.split('\n');
                     fileContent.textContent = '';
+                    counter.textContent = '';
                 };
                 reader.readAsText(file);
             } else {
@@ -88,6 +118,8 @@
             const searchTerm = searchBox.value.toLowerCase().trim();
             if (searchTerm === '') {
                 fileContent.innerHTML = '';
+                showMoreButton.style.display = 'none';
+                counter.textContent = '';
             } else {
                 // Use a debounce function to limit the rate of search execution
                 debounceSearch(searchTerm);
@@ -103,6 +135,7 @@
         }
 
         const debounceSearch = debounce((searchTerm) => {
+            currentIndex = 0;
             const highlightedContent = fileLines.reduce((acc, line) => {
                 const lowerCaseLine = line.toLowerCase();
                 if (lowerCaseLine.includes(searchTerm)) {
@@ -110,9 +143,29 @@
                     acc.push(line.substring(0, index) + '<span class="highlight">' + line.substring(index, index + searchTerm.length) + '</span>' + line.substring(index + searchTerm.length));
                 }
                 return acc;
-            }, []).join('\n');
-            fileContent.innerHTML = highlightedContent;
+            }, []);
+            displayResults(highlightedContent);
         }, 300); // Adjust the debounce delay as needed
+
+        function displayResults(results) {
+            const limitedResults = results.slice(0, itemsPerPage);
+            fileContent.innerHTML = limitedResults.join('\n');
+            counter.textContent = `${Math.min(currentIndex + itemsPerPage, results.length)} / ${results.length} matches`;
+            if (results.length > itemsPerPage) {
+                showMoreButton.style.display = 'block';
+                showMoreButton.onclick = () => {
+                    currentIndex += itemsPerPage;
+                    const nextResults = results.slice(currentIndex, currentIndex + itemsPerPage);
+                    fileContent.innerHTML += '\n' + nextResults.join('\n');
+                    if (currentIndex + itemsPerPage >= results.length) {
+                        showMoreButton.style.display = 'none';
+                    }
+                    counter.textContent = `${Math.min(currentIndex + itemsPerPage, results.length)} / ${results.length} matches`;
+                };
+            } else {
+                showMoreButton.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>

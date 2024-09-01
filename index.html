@@ -67,11 +67,25 @@
             border-top: 1px solid #ccc;
             z-index: 1000; /* Added to ensure it stays on top */
         }
+        #upload_button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #file_input {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <input type="text" id="search_box" placeholder="Search...">
     <div id="drop_zone">Drag and drop a .txt file here</div>
+    <button id="upload_button">Upload a .txt file</button>
+    <input type="file" id="file_input" accept=".txt">
     <div id="file_content"></div>
     <button id="show_more">Show More</button>
     <div id="counter"></div>
@@ -82,6 +96,8 @@
         const fileContent = document.getElementById('file_content');
         const showMoreButton = document.getElementById('show_more');
         const counter = document.getElementById('counter');
+        const uploadButton = document.getElementById('upload_button');
+        const fileInput = document.getElementById('file_input');
         let fileLines = [];
         let currentIndex = 0;
         const itemsPerPage = 500;
@@ -104,6 +120,7 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     dropZone.style.display = 'none';
+                    uploadButton.style.display = 'none';
                     fileLines = e.target.result.split('\n');
                     fileContent.textContent = '';
                     counter.textContent = '';
@@ -111,6 +128,27 @@
                 reader.readAsText(file);
             } else {
                 alert('Please drop a valid .txt file.');
+            }
+        });
+
+        uploadButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file && file.type === 'text/plain') {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    dropZone.style.display = 'none';
+                    uploadButton.style.display = 'none';
+                    fileLines = e.target.result.split('\n');
+                    fileContent.textContent = '';
+                    counter.textContent = '';
+                };
+                reader.readAsText(file);
+            } else {
+                alert('Please select a valid .txt file.');
             }
         });
 

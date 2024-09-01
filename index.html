@@ -89,14 +89,30 @@
             if (searchTerm === '') {
                 fileContent.innerHTML = '';
             } else {
-                const highlightedContent = fileLines.filter(line => line.toLowerCase().includes(searchTerm))
-                                                    .map(line => {
-                                                        const index = line.toLowerCase().indexOf(searchTerm);
-                                                        return line.substring(0, index) + '<span class="highlight">' + line.substring(index, index + searchTerm.length) + '</span>' + line.substring(index + searchTerm.length);
-                                                    }).join('\n');
-                fileContent.innerHTML = highlightedContent;
+                // Use a debounce function to limit the rate of search execution
+                debounceSearch(searchTerm);
             }
         });
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        const debounceSearch = debounce((searchTerm) => {
+            const highlightedContent = fileLines.reduce((acc, line) => {
+                const lowerCaseLine = line.toLowerCase();
+                if (lowerCaseLine.includes(searchTerm)) {
+                    const index = lowerCaseLine.indexOf(searchTerm);
+                    acc.push(line.substring(0, index) + '<span class="highlight">' + line.substring(index, index + searchTerm.length) + '</span>' + line.substring(index + searchTerm.length));
+                }
+                return acc;
+            }, []).join('\n');
+            fileContent.innerHTML = highlightedContent;
+        }, 300); // Adjust the debounce delay as needed
     </script>
 </body>
 </html>

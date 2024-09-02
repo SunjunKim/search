@@ -76,6 +76,15 @@
             border: none;
             cursor: pointer;
         }
+        #load_last_file {
+            display: none; /* Initially hidden */
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
         #file_input {
             display: none;
         }
@@ -84,7 +93,10 @@
 <body>
     <input type="text" id="search_box" placeholder="Search...">
     <div id="drop_zone">Drag and drop a .txt file here</div>
-    <button id="upload_button">Upload a .txt file</button>
+    <div style="display: flex; justify-content: center; gap: 10px;">
+        <button id="load_last_file">Load Last File</button>
+        <button id="upload_button">Upload a .txt file</button>
+    </div>
     <input type="file" id="file_input" accept=".txt">
     <div id="file_content"></div>
     <button id="show_more">Show More</button>
@@ -98,9 +110,20 @@
         const counter = document.getElementById('counter');
         const uploadButton = document.getElementById('upload_button');
         const fileInput = document.getElementById('file_input');
+        const loadLastFileButton = document.getElementById('load_last_file');
         let fileLines = [];
         let currentIndex = 0;
         const itemsPerPage = 500;
+
+        // Check for last file cookie and update button text if it exists
+        const lastFileCookie = document.cookie.split('; ').find(row => row.startsWith('_lastFile='));
+        console.log(document.cookie);
+
+        if (lastFileCookie) {
+            const lastFileName = lastFileCookie.split('=')[1];
+            loadLastFileButton.textContent = `Load Last File (${lastFileName})`;
+            loadLastFileButton.style.display = 'block'; // Show the button if the cookie exists
+        }
 
         dropZone.addEventListener('dragover', (event) => {
             event.preventDefault();
@@ -111,24 +134,30 @@
             dropZone.style.borderColor = '#ccc';
         });
 
-        dropZone.addEventListener('drop', (event) => {
-            event.preventDefault();
-            dropZone.style.borderColor = '#ccc';
-
-            const file = event.dataTransfer.files[0];
+        function handleFile(file) {
             if (file && file.type === 'text/plain') {
                 const reader = new FileReader();
                 reader.onload = (e) => {
+                    let content = e.target.result;
                     dropZone.style.display = 'none';
                     uploadButton.style.display = 'none';
-                    fileLines = e.target.result.split('\n');
+                    loadLastFileButton.style.display = 'none';
+                    fileLines = content.split('\n');
                     fileContent.textContent = '';
                     counter.textContent = '';
+                    document.cookie = `_lastFile=${file.name}; path=/;`;
                 };
                 reader.readAsText(file);
             } else {
-                alert('Please drop a valid .txt file.');
+                alert('Please select a valid .txt file.');
             }
+        }
+
+        dropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropZone.style.borderColor = '#ccc';
+            const file = event.dataTransfer.files[0];
+            handleFile(file);
         });
 
         uploadButton.addEventListener('click', () => {
@@ -137,18 +166,19 @@
 
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
-            if (file && file.type === 'text/plain') {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    dropZone.style.display = 'none';
-                    uploadButton.style.display = 'none';
-                    fileLines = e.target.result.split('\n');
-                    fileContent.textContent = '';
-                    counter.textContent = '';
-                };
-                reader.readAsText(file);
-            } else {
-                alert('Please select a valid .txt file.');
+            handleFile(file);
+        });
+
+        loadLastFileButton.addEventListener('click', () => {
+            if (lastFileCookie) {
+                const lastFileName = lastFileCookie.split('=')[1];
+                fetch(lastFileName)
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const file = new File([blob], lastFileName, { type: 'text/plain' });
+                        handleFile(file);
+                    })
+                    .catch(error => console.error('Error loading last file:', error));
             }
         });
 
@@ -171,14 +201,15 @@
                 timeout = setTimeout(() => func.apply(this, args), wait);
             };
         }
-
         const debounceSearch = debounce((searchTerm) => {
             currentIndex = 0;
+            const normalizedSearchTerm = searchTerm.replace(/\s+/g, '');
             const highlightedContent = fileLines.reduce((acc, line) => {
-                const lowerCaseLine = line.toLowerCase();
-                if (lowerCaseLine.includes(searchTerm)) {
-                    const index = lowerCaseLine.indexOf(searchTerm);
-                    acc.push(line.substring(0, index) + '<span class="highlight">' + line.substring(index, index + searchTerm.length) + '</span>' + line.substring(index + searchTerm.length));
+                const normalizedLine = line.toLowerCase().replace(/\s+/g, '');
+                if (normalizedLine.includes(normalizedSearchTerm)) {
+                    const regex = new RegExp(searchTerm.replace(/\s+/g, '\\s*'), 'gi');
+                    const highlightedLine = line.replace(regex, (match) => `<span class="highlight">${match}</span>`);
+                    acc.push(highlightedLine);
                 }
                 return acc;
             }, []);
@@ -206,4 +237,3 @@
         }
     </script>
 </body>
-</html>

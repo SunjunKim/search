@@ -76,15 +76,6 @@
             border: none;
             cursor: pointer;
         }
-        #load_last_file {
-            display: none; /* Initially hidden */
-            margin: 20px auto;
-            padding: 10px 20px;
-            background-color: #ff0000;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
         #file_input {
             display: none;
         }
@@ -94,7 +85,6 @@
     <input type="text" id="search_box" placeholder="Search...">
     <div id="drop_zone">Drag and drop a .txt file here</div>
     <div style="display: flex; justify-content: center; gap: 10px;">
-        <button id="load_last_file">Load Last File</button>
         <button id="upload_button">Upload a .txt file</button>
     </div>
     <input type="file" id="file_input" accept=".txt">
@@ -110,20 +100,9 @@
         const counter = document.getElementById('counter');
         const uploadButton = document.getElementById('upload_button');
         const fileInput = document.getElementById('file_input');
-        const loadLastFileButton = document.getElementById('load_last_file');
         let fileLines = [];
         let currentIndex = 0;
         const itemsPerPage = 500;
-
-        // Check for last file cookie and update button text if it exists
-        const lastFileCookie = document.cookie.split('; ').find(row => row.startsWith('_lastFile='));
-        console.log(document.cookie);
-
-        if (lastFileCookie) {
-            const lastFileName = lastFileCookie.split('=')[1];
-            loadLastFileButton.textContent = `Load Last File (${lastFileName})`;
-            loadLastFileButton.style.display = 'block'; // Show the button if the cookie exists
-        }
 
         dropZone.addEventListener('dragover', (event) => {
             event.preventDefault();
@@ -141,11 +120,9 @@
                     let content = e.target.result;
                     dropZone.style.display = 'none';
                     uploadButton.style.display = 'none';
-                    loadLastFileButton.style.display = 'none';
                     fileLines = content.split('\n');
                     fileContent.textContent = '';
                     counter.textContent = '';
-                    document.cookie = `_lastFile=${file.name}; path=/;`;
                 };
                 reader.readAsText(file);
             } else {
@@ -167,19 +144,6 @@
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             handleFile(file);
-        });
-
-        loadLastFileButton.addEventListener('click', () => {
-            if (lastFileCookie) {
-                const lastFileName = lastFileCookie.split('=')[1];
-                fetch(lastFileName)
-                    .then(response => response.blob())
-                    .then(blob => {
-                        const file = new File([blob], lastFileName, { type: 'text/plain' });
-                        handleFile(file);
-                    })
-                    .catch(error => console.error('Error loading last file:', error));
-            }
         });
 
         searchBox.addEventListener('input', () => {
